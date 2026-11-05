@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>太陽系隨機問答</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: system-ui, -apple-system, "Noto Sans TC", sans-serif;
+      background: #f3f5fb;
+      color: #20243a;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    main {
+      width: min(100%, 680px);
+      background: white;
+      border-radius: 20px;
+      padding: clamp(24px, 5vw, 44px);
+      box-shadow: 0 16px 50px #20243a18;
+    }
+    h1 { margin: 0 0 8px; }
+    .intro { color: #686d80; margin: 0 0 28px; }
+    .controls {
+      display: flex;
+      gap: 12px;
+      align-items: end;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    label {
+      display: grid;
+      gap: 7px;
+      font-size: 14px;
+      color: #555b70;
+    }
+    select, button {
+      font: inherit;
+      border-radius: 10px;
+      padding: 11px 15px;
+    }
+    select {
+      min-width: 190px;
+      border: 1px solid #d9dceb;
+      background: white;
+      color: inherit;
+    }
+    button {
+      border: 0;
+      cursor: pointer;
+      font-weight: 650;
+      transition: transform .12s, opacity .12s;
+    }
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    .primary { background: #5358d9; color: white; }
+    .secondary { background: #eceeff; color: #373cac; }
+    .card {
+      min-height: 250px;
+      padding: 24px;
+      border-radius: 16px;
+      background: #f7f8ff;
+      border: 1px solid #e8eaff;
+    }
+    .meta {
+      color: #6b70a7;
+      font-size: 14px;
+      font-weight: 650;
+      margin-bottom: 18px;
+    }
+    .question {
+      font-size: clamp(22px, 4vw, 30px);
+      line-height: 1.55;
+      margin: 0;
+    }
+    .answer {
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid #dfe2f5;
+      font-size: 19px;
+      line-height: 1.6;
+    }
+    .answer[hidden] { display: none; }
+    .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+    .status { color: #777c8f; font-size: 13px; margin-top: 18px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>太陽系隨機問答</h1>
+    <p class="intro">選擇題目分類，抽一題試試看！</p>
+
+    <div class="controls">
+      <label for="category">題目分類
+        <select id="category"></select>
+      </label>
+      <button class="primary" id="draw">抽一題</button>
+    </div>
+
+    <section class="card" aria-live="polite">
+      <div class="meta" id="meta">準備好了嗎？</div>
+      <p class="question" id="question">按「抽一題」開始</p>
+      <div class="answer" id="answer" hidden></div>
+    </section>
+
+    <div class="actions">
+      <button class="secondary" id="reveal" disabled>揭曉答案</button>
+      <button class="primary" id="next" disabled>再抽一題</button>
+    </div>
+    <div class="status" id="status"></div>
+  </main>
+
+  <script>
+    const groups = [
+      { code: "A", name: "太陽", items: [
+        ["太陽表面溫度多少?", "5500度C"], ["太陽自轉週期多久?", "25.4天"],
+        ["太陽自轉軸傾斜幾度?", "7.3度"], ["太陽直徑是地球幾倍?", "109倍"],
+        ["太陽中心溫度多高?", "150萬度"], ["太陽主要成分是什麼?", "氫氣與氦氣"],
+        ["太陽的氫氣占多少比例?", "73%"], ["太陽的氦氣占多少比例?", "24%"],
+        ["太陽的英文是什麼?", "Sun"], ["太陽上較暗的黑點叫什麼？", "黑子"],
+        ["太陽體積是地球的幾倍？", "130萬倍"], ["太陽是靠什麼反應發光發熱？", "核融合反應"]
+      ]},
+      { code: "B", name: "水星", items: [
+        ["水星距離太陽多少AU?", "0.38 AU"], ["水星的英文是什麼?", "Mercury"],
+        ["水星上的許多坑洞叫什麼?", "隕石坑"], ["水星的分離角幾度?", "28.3度"],
+        ["水星的另一個稱呼為?", "辰星"], ["水星公轉時間多久?", "88天"],
+        ["水星最低溫幾度?", "-170度"], ["水星最高溫幾度?", "430度"],
+        ["水星自轉軸傾斜底度?", "0.034度"], ["水星體積是地球幾倍?", "0.056倍"],
+        ["水星的溫差幾度？", "600度"], ["水星有空氣嗎？", "沒有"]
+      ]},
+      { code: "C", name: "金星", items: [
+        ["金星的英文是什麼?", "Venus"], ["金星體積是地球幾倍?", "0.86倍"],
+        ["金星距離太陽多少AU?", "0.72 AU"], ["金星清晨在東方出現時叫什麼?", "啟明/晨星"],
+        ["金星傍晚在西方出現時叫什麼?", "長庚/昏星"], ["金星怎麼轉?", "斜177度/倒著轉"],
+        ["金星雲層裡有什麼酸性物質?", "硫酸"], ["金星氣壓是地球幾倍?", "92倍"],
+        ["金星溫度平均幾度?", "462度"], ["金星亮度幾星等?", "-4.9星等"],
+        ["金星大氣層主要是什麼氣體？", "CO2"], ["金星維持高溫的原因是什麼？", "溫室效應"]
+      ]},
+      { code: "D", name: "地球", items: [
+        ["地球的英文是什麼?", "Earth"], ["地球的密度多少?", "5.5"],
+        ["地球自轉傾斜幾度?", "23.5度"], ["地球海洋占多少面積?", "71%"],
+        ["地球陸地占多少面積?", "29%"], ["地球最特別之處是什麼三態共存?", "水"],
+        ["地球空氣裡最多的是什麼?", "氮氣"], ["地球的氧氣佔空氣的多少?", "21%"],
+        ["地球距離太陽多遠?", "1.5億公里/1 AU"], ["地球最低溫是幾度?", "-89.2度"],
+        ["地球最高溫是幾度?", "56.7度"], ["地球的氮氣佔空氣的多少？", "78%"]
+      ]},
+      { code: "E", name: "火星", items: [
+        ["火星的英文是什麼?", "Mars"], ["火星一天多久?", "24小時40分鐘"],
+        ["火星的紅色是因為有什麼物質?", "氧化鐵"], ["火星自轉軸傾斜幾度?", "25度"],
+        ["火星有幾顆已知衛星?", "2個"], ["火星最高溫幾度?", "20度"],
+        ["火星最低溫幾度?", "-140度"], ["火星最多的氣體是什麼?", "二氧化碳"],
+        ["火星氣壓不到地球的多少?", "不到地球的1%"], ["火星距離太陽多少AU?", "1.52 AU"],
+        ["火星體積是地球幾倍?", "0.15倍"], ["火星最著名的峽谷叫什麼峽谷？", "水手峽谷"]
+      ]},
+      { code: "F", name: "木星", items: [
+        ["木星的英文是什麼?", "Jupiter"], ["木星距離太陽多少AU?", "5.2 AU"],
+        ["木星有幾個大衛星?", "4個"], ["木星公轉週期約多久?", "約12年"],
+        ["木星自轉傾斜幾度?", "3度"], ["木星自轉一圈需多久時間?", "9.9小時"],
+        ["木星的氫氣佔多少比例?", "90%"], ["木星的氦氣佔多少比例?", "10%"],
+        ["木星直徑有幾個地球?", "11個"], ["木星的重力是地球的幾倍?", "2.5倍"],
+        ["木星體積是地球的幾倍?", "1321倍"], ["木星有多少顆已知衛星?", "95顆"]
+      ]},
+      { code: "G", name: "土星", items: [
+        ["土星的英文是什麼?", "Saturn"], ["土星距離太陽多少AU?", "9.55 AU"],
+        ["土星體積是地球幾倍?", "763倍"], ["土星有多少顆已知衛星?", "274顆"],
+        ["土星的密度多少?", "0.7"], ["土星自轉軸傾斜幾度?", "26.7度"],
+        ["土星自轉一圈多久?", "10.5小時"], ["土星公轉週期多久?", "29.5年"],
+        ["土星在古中國又稱為什麼星?", "鎮星"], ["土星環裡的主要成分是什麼?", "水冰"],
+        ["土星大氣裡最多的氣體是什麼?", "氫氣"], ["土星的氫氣佔大氣的多少?", "96%"]
+      ]},
+      { code: "H", name: "天王星", items: [
+        ["天王星的英文是什麼?", "Uranus"], ["天王星距離太陽多少AU?", "19.2 AU"],
+        ["天王星體積是地球的幾倍?", "63倍"], ["天王星溫度最冷幾度?", "-224度"],
+        ["天王星怎麼轉?", "傾斜98度/躺著轉"], ["天王星最多的氣體是什麼?", "氫氣"],
+        ["天王星的第二多的氣體是什麼?", "氦氣"], ["天王星的氫氣佔大氣的多少?", "83%"],
+        ["天王星的氦氣佔大氣的多少?", "15%"], ["天王星的甲烷佔空氣多少?", "2%"],
+        ["天王星的磁偏角幾度?", "59度"], ["天王星有幾顆已知衛星?", "27顆"]
+      ]},
+      { code: "I", name: "海王星", items: [
+        ["海王星的英文是什麼?", "Neptune"], ["海王星距離太陽多遠?", "30.1 AU"],
+        ["海王星體積是地球的幾倍?", "58倍"], ["海王星自轉軸傾斜幾度?", "28.3度"],
+        ["海王星有幾顆已知衛星?", "14顆"], ["海王星公轉週期多久?", "165年"],
+        ["海王星上的風速最快多少?", "2000公里/小時"], ["海王星最低溫幾度?", "-221度"],
+        ["海王星最多的氣體是什麼?", "氫氣"], ["海王星大氣裡的氫氣佔多少?", "80%"],
+        ["海王星大氣裡的氦氣佔多少?", "19%"], ["海王星大氣裡的甲烷佔多少?", "1%"]
+      ]},
+      { code: "M", name: "排序題型", items: [
+        ["按照距離太陽遠近排序", "日-水-金-地-火-木-土-天-海"],
+        ["按照體積大小排序", "日-木-土-天-海-地-金-火-水"],
+        ["按照自轉軸傾斜角度排序", "金-天-海-土-火-地-日-木-水"],
+        ["按照表層最高溫排序", "日-金-水-地-火-木-土-海-天"],
+        ["按照表層最低溫度排序", "天-海-土=水-木-火-地-金-日"],
+        ["按照自轉快慢排序", "木-土-海-天-地-火-日-水-金"],
+        ["按照衛星數量排序", "土-木-天-海-火-地"]
+      ]}
+    ];
+
+    const categorySelect = document.querySelector("#category");
+    const questionEl = document.querySelector("#question");
+    const answerEl = document.querySelector("#answer");
+    const metaEl = document.querySelector("#meta");
+    const statusEl = document.querySelector("#status");
+    const revealButton = document.querySelector("#reveal");
+    const nextButton = document.querySelector("#next");
+    let remaining = [];
+    let currentQuestion = null;
+
+    const allOption = document.createElement("option");
+    allOption.value = "all";
+    allOption.textContent = "全部分類（115 題）";
+    categorySelect.append(allOption);
+
+    for (const group of groups) {
+      const option = document.createElement("option");
+      option.value = group.code;
+      option.textContent = `${group.code}｜${group.name}（${group.items.length} 題）`;
+      categorySelect.append(option);
+    }
+
+    function resetPool() {
+      const selectedGroups = categorySelect.value === "all"
+        ? groups
+        : groups.filter(group => group.code === categorySelect.value);
+      remaining = selectedGroups.flatMap(group => group.items.map(([question, answer], index) => ({
+        code: group.code, name: group.name, number: index + 1, question, answer
+      })));
+    }
+
+    function drawQuestion() {
+      if (remaining.length === 0) resetPool();
+      const index = Math.floor(Math.random() * remaining.length);
+      currentQuestion = remaining.splice(index, 1)[0];
+      questionEl.textContent = currentQuestion.question;
+      answerEl.textContent = `答案：${currentQuestion.answer}`;
+      answerEl.hidden = true;
+      metaEl.textContent = `${currentQuestion.code}${currentQuestion.number}｜${currentQuestion.name}`;
+      revealButton.disabled = false;
+      nextButton.disabled = false;
+      statusEl.textContent = `本輪還有 ${remaining.length} 題未抽。`;
+    }
+
+    document.querySelector("#draw").addEventListener("click", drawQuestion);
+    nextButton.addEventListener("click", drawQuestion);
+    revealButton.addEventListener("click", () => {
+      if (!currentQuestion) return;
+      answerEl.hidden = false;
+      revealButton.disabled = true;
+    });
+    categorySelect.addEventListener("change", () => {
+      resetPool();
+      currentQuestion = null;
+      questionEl.textContent = "按「抽一題」開始";
+      metaEl.textContent = "準備好了嗎？";
+      answerEl.hidden = true;
+      revealButton.disabled = true;
+      nextButton.disabled = true;
+      statusEl.textContent = "";
+    });
+    resetPool();
+  </script>
+</body>
+</html>
